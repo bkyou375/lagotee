@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RoomType {
+  id                Int      @id @default(autoincrement())
+  name              String
+  description       String?
+  basePricePerNight Float
+  maxGuests         Int
+  rooms             Room[]
+}
+
+model Room {
+  id         Int      @id @default(autoincrement())
+  roomNumber String   @unique
+  isActive   Boolean  @default(true)
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  bookings   Booking[]
+  blockedDates BlockedDate[]
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model Booking {
+  id          Int       @id @default(autoincrement())
+  roomTypeId  Int
+  roomType    RoomType  @relation(fields: [roomTypeId], references: [id])
+  roomId      Int?      // se asigna cuando se confirma
+  room        Room?     @relation(fields: [roomId], references: [id])
+  checkInDate DateTime
+  checkOutDate DateTime
+  guestName   String
+  guestEmail  String
+  guestPhone  String
+  status      BookingStatus @default(PENDING)
+  totalPrice  Float
+  createdAt   DateTime      @default(now())
+  paymentId   Int?      
+  payment     Payment?   @relation(fields: [paymentId], references: [id])
+}
+
+model BlockedDate {
+  id      Int      @id @default(autoincrement())
+  roomId  Int
+  room    Room     @relation(fields: [roomId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  reason   String?
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  role     UserRole @default(OWNER)
+  createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  OWNER
+  STAFF
+}
+
+model Payment {
+  id       Int      @id @default(autoincrement())
+  provider String
+  providerPaymentId String
+  amount   Float
+  currency String
+  status   String
+  rawResponse Json?
+  booking  Booking?
+}
